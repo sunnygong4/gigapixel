@@ -144,28 +144,36 @@
       position: relative;
       z-index: 1;
       padding: 2rem;
-      max-width: 1280px;
+      max-width: 1400px;
       margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 1.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .gallery::after {
+      content: '';
+      flex-grow: 999;
+      min-width: 300px;
     }
 
     .gallery-item {
       position: relative;
-      aspect-ratio: 16/11;
       border-radius: var(--radius);
       overflow: hidden;
       cursor: pointer;
       background: var(--bg-card);
       border: 1px solid var(--border);
       transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s;
+      flex-grow: 1;
+      display: block;
     }
 
     .gallery-item:hover {
       transform: translateY(-3px);
       border-color: rgba(212, 168, 83, 0.4);
       box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.5);
+      z-index: 2;
     }
 
     .gallery-item img {
@@ -336,6 +344,39 @@
       background: rgba(255,255,255,0.05);
     }
 
+    .viewer-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(15, 15, 20, 0.5);
+      border: none;
+      color: var(--text-muted);
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 201;
+      font-size: 1.5rem;
+      transition: all 0.2s;
+    }
+
+    .viewer-nav:hover {
+      background: rgba(15, 15, 20, 0.9);
+      color: var(--text);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .viewer-nav-prev {
+      left: 1.5rem;
+    }
+
+    .viewer-nav-next {
+      right: 1.5rem;
+    }
+
     #viewer {
       flex: 1;
       min-height: 0;
@@ -408,31 +449,62 @@
       position: relative;
       z-index: 1;
       padding: 2rem;
-      max-width: 900px;
+      max-width: 1000px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 1.25rem;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
     }
 
     .section-card {
-      display: block;
-      padding: 2rem 1.5rem;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 200px;
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       text-decoration: none;
       color: var(--text);
       text-align: center;
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: 1.25rem;
+      overflow: hidden;
       transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .section-card .bg-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.4;
+      transition: opacity 0.3s, transform 0.4s;
+      z-index: 0;
+    }
+
+    .section-card .content {
+      position: relative;
+      z-index: 1;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 1.5rem;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+      padding: 1.5rem;
     }
 
     .section-card:hover {
       transform: translateY(-4px);
       border-color: rgba(212, 168, 83, 0.5);
       box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.4);
+    }
+
+    .section-card:hover .bg-img {
+      opacity: 0.7;
+      transform: scale(1.05);
+    }
+
+    .section-card:hover .content {
       color: var(--accent);
     }
 
@@ -461,7 +533,7 @@
 </head>
 <body id="body" class="view-home">
   <header id="header">
-    <div class="logo"><a href="#" id="logo-link">Sunny's Ultra Resolution Photos</a></div>
+    <div class="logo"><a href="#" id="logo-link">GIGAPIXEL</a></div>
     <nav id="nav-sections">
       <a href="#" data-section="niagara-falls">Niagara Falls</a>
       <a href="#" data-section="british-columbia">British Columbia</a>
@@ -475,15 +547,15 @@
 
   <main>
     <section class="hero">
-      <h1>Sunny's Ultra Resolution Photos</h1>
-      <p>Large photography to zoom and pan — explore every detail.</p>
+      <h1 id="hero-title">Sunny's Ultra Resolution Photos</h1>
+      <p id="hero-subtitle">Large photography to zoom and pan — explore every detail.</p>
     </section>
 
     <div id="section-cards" class="section-cards">
       <!-- Populated by JS -->
     </div>
 
-    <div id="gallery-container" style="display: none;">
+    <div id="gallery-container">
       <section id="gallery" class="gallery">
         <div class="empty-gallery" id="empty-state">
           <p>No photos in this section.</p>
@@ -511,6 +583,8 @@
       </div>
     </div>
     <div id="viewer"></div>
+    <button class="viewer-nav viewer-nav-prev" id="viewer-prev" aria-label="Previous photo" style="display: none;">‹</button>
+    <button class="viewer-nav viewer-nav-next" id="viewer-next" aria-label="Next photo" style="display: none;">›</button>
   </div>
 
   <script src="photos.js"></script>
@@ -527,14 +601,20 @@
     const bodyEl = document.getElementById('body');
     const logoLink = document.getElementById('logo-link');
     const navSections = document.getElementById('nav-sections');
+    const heroTitle = document.getElementById('hero-title');
+    const heroSubtitle = document.getElementById('hero-subtitle');
     const viewerOverlay = document.getElementById('viewer-overlay');
     const viewerTitle = document.getElementById('viewer-title');
     const viewerMeta = document.getElementById('viewer-meta');
     const viewerDownload = document.getElementById('viewer-download');
     const viewerRotate = document.getElementById('viewer-rotate');
     const viewerClose = document.getElementById('viewer-close');
+    const viewerPrev = document.getElementById('viewer-prev');
+    const viewerNext = document.getElementById('viewer-next');
     let osdViewer = null;
     let currentSectionSlug = null;
+    let currentPhotoIndex = -1;
+    let currentSectionPhotos = [];
 
     function formatNumber(n) {
       return n.toLocaleString();
@@ -567,6 +647,8 @@
       currentSectionSlug = null;
       bodyEl.className = 'view-home';
       navSections.querySelectorAll('a[data-section]').forEach(a => a.classList.remove('active'));
+      heroTitle.textContent = "Sunny's Ultra Resolution Photos";
+      heroSubtitle.textContent = "Large photography to zoom and pan — explore every detail.";
       history.replaceState(null, '', location.pathname + location.search);
     }
 
@@ -578,6 +660,11 @@
       });
       const section = SECTIONS.find(s => s.slug === slug);
       if (!section) return;
+      currentSectionPhotos = section.photos;
+      
+      heroTitle.textContent = section.title;
+      heroSubtitle.textContent = `${section.photos.length} photo${section.photos.length !== 1 ? 's' : ''}`;
+      
       gallery.innerHTML = '';
       if (section.photos.length === 0) {
         emptyState.style.display = 'block';
@@ -585,15 +672,21 @@
         gallery.appendChild(emptyState);
       } else {
         emptyState.style.display = 'none';
-        const sectionGrid = document.createElement('div');
-        sectionGrid.className = 'gallery';
-        sectionGrid.style.padding = '0';
-        sectionGrid.style.maxWidth = 'none';
         section.photos.forEach((photo) => {
           const i = PHOTOS.indexOf(photo);
           const item = document.createElement('div');
           item.className = 'gallery-item';
           item.dataset.index = i;
+          
+          if (photo.width && photo.height) {
+            // Do NOT swap width/height or apply rotation to the thumbnail, 
+            // since the thumbnails themselves are not physically rotated by the user's request.
+            const aspect = photo.width / photo.height;
+            item.style.flexGrow = aspect;
+            item.style.flexBasis = (aspect * 250) + 'px';
+            item.style.aspectRatio = aspect;
+          }
+
           const dimStr = photo.width && photo.height
             ? `${formatNumber(photo.width)} × ${formatNumber(photo.height)} px`
             : '';
@@ -607,9 +700,8 @@
             </div>
           `;
           item.addEventListener('click', () => openViewer(i));
-          sectionGrid.appendChild(item);
+          gallery.appendChild(item);
         });
-        gallery.appendChild(sectionGrid);
       }
       history.replaceState(null, '', '#' + slug);
       window.scrollTo(0, 0);
@@ -621,7 +713,19 @@
       a.href = '#';
       a.className = 'section-card';
       a.dataset.section = section.slug;
-      a.innerHTML = `${section.title}<span class="count">${section.photos.length} photo${section.photos.length !== 1 ? 's' : ''}</span>`;
+      
+      let bgHtml = '';
+      if (section.photos && section.photos.length > 0) {
+        bgHtml = `<img src="${section.photos[0].thumb}" alt="" class="bg-img" loading="lazy">`;
+      }
+      
+      a.innerHTML = `
+        ${bgHtml}
+        <div class="content">
+          ${section.title}
+          <span class="count">${section.photos.length} photo${section.photos.length !== 1 ? 's' : ''}</span>
+        </div>
+      `;
       a.addEventListener('click', (e) => { e.preventDefault(); showSection(section.slug); });
       sectionCardsEl.appendChild(a);
     });
@@ -643,7 +747,39 @@
     const hash = (location.hash || '').replace(/^#/, '');
     if (hash && SECTIONS.some(s => s.slug === hash)) showSection(hash);
 
+    function updateNavButtons() {
+      if (!currentSectionPhotos || currentSectionPhotos.length <= 1) {
+        viewerPrev.style.display = 'none';
+        viewerNext.style.display = 'none';
+        return;
+      }
+      const photo = PHOTOS[currentPhotoIndex];
+      const sectionIdx = currentSectionPhotos.indexOf(photo);
+      
+      viewerPrev.style.display = sectionIdx > 0 ? 'flex' : 'none';
+      viewerNext.style.display = sectionIdx < currentSectionPhotos.length - 1 ? 'flex' : 'none';
+    }
+
+    function changePhoto(direction) {
+      if (!currentSectionPhotos || currentPhotoIndex === -1) return;
+      const photo = PHOTOS[currentPhotoIndex];
+      let sectionIdx = currentSectionPhotos.indexOf(photo);
+      sectionIdx += direction;
+      
+      if (sectionIdx >= 0 && sectionIdx < currentSectionPhotos.length) {
+        const nextPhoto = currentSectionPhotos[sectionIdx];
+        const nextGlobalIdx = PHOTOS.indexOf(nextPhoto);
+        
+        if (osdViewer) {
+          osdViewer.destroy();
+          osdViewer = null;
+        }
+        openViewer(nextGlobalIdx);
+      }
+    }
+
     function openViewer(index) {
+      currentPhotoIndex = index;
       const photo = PHOTOS[index];
       viewerTitle.textContent = photo.title;
       viewerMeta.textContent = '';
@@ -657,6 +793,8 @@
 
       viewerOverlay.classList.add('active');
       document.body.style.overflow = 'hidden';
+      
+      updateNavButtons();
 
       osdViewer = OpenSeadragon({
         element: document.getElementById('viewer'),
@@ -692,6 +830,7 @@
         osdViewer.destroy();
         osdViewer = null;
       }
+      currentPhotoIndex = -1;
       viewerOverlay.classList.remove('active');
       document.body.style.overflow = '';
     }
@@ -702,12 +841,16 @@
         vp.setRotation((vp.getRotation() + 90) % 360, false);
       }
     });
+    viewerPrev.addEventListener('click', (e) => { e.stopPropagation(); changePhoto(-1); });
+    viewerNext.addEventListener('click', (e) => { e.stopPropagation(); changePhoto(1); });
     viewerClose.addEventListener('click', closeViewer);
     viewerOverlay.addEventListener('click', (e) => {
       if (e.target === viewerOverlay) closeViewer();
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeViewer();
+      if (e.key === 'ArrowLeft') changePhoto(-1);
+      if (e.key === 'ArrowRight') changePhoto(1);
     });
 
     const header = document.getElementById('header');
